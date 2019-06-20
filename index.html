@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title></title>
+</head>
+<body>
+	<p style="margin-top: 10px; text-indent: 0;">若无异议，请在以下方框内签名<a id="clear" style="cursor: pointer; float: right;">重新签名</a></p>
+	<div class="sign" style="height: 200px;">
+	    <script type="text/javascript" src="js/jquery.min.js"></script>
+	    <script type="text/javascript" src="js/jSignature.min.js"></script>
+	    <div id="signature" style="height: 200px; width: 100%; border: solid 1px #000"></div>
+	    <br>
+	    <input id="save" type="button" value="保存base64" style="display: none;">
+	    <div id="pic" style="display: none;"></div>
+	</div>
+	<p><button id="export">提交</button></p>
+</body>
+<script type="text/javascript">
+	$(document).ready(function() {
+        $("#signature").jSignature({"decor-color":"transparent", "width":"100%", "height":"100%"})
+    });
+
+    //重写
+    $("#clear").click( function() {
+        $("#signature").jSignature("reset");
+        $("#pic")[0].innerHTML = '';
+    });
+
+    //保存base64
+    $("#save").click( function() {
+        var datapair = $("#signature").jSignature("getData", "image");
+        var array = datapair.splice(",");
+    });
+
+    //输出图片
+    $("#export").click( function() {
+        if($("#pic").find('img').length>0){
+            $("#pic").find('img').remove();
+        }
+        $("#pic").remove('img');
+        var datapair = $("#signature").jSignature("getData", "image");
+        var i = new Image();
+        i.src = "data:" + datapair[0] + "," + datapair[1];
+        $(i).appendTo($("#pic"));
+
+        //验证是否没有签名
+        if(checkEmpty(i.src)){
+        	alert("请签名");
+            return false;
+        }
+
+        var blob = dataURItoBlob(i.src); 
+        var fd = new FormData(document.forms[0]);
+        fd.append("img", blob, 'image.png');
+
+        $.ajax({
+            url: '请求地址',
+            data: fd,
+            type: "post",
+            processData: false, // 必须
+            contentType: false, // 必须
+            success: function(resp){
+                
+            }
+        });
+    });
+
+    //将base64转换成二进制图片（Blob）
+    function dataURItoBlob(base64Data) {
+        var byteString;
+        if (base64Data.split(',')[0].indexOf('base64') >= 0)
+            byteString = atob(base64Data.split(',')[1]);
+        else
+            byteString = unescape(base64Data.split(',')[1]);
+        var mimeString = base64Data.split(',')[0].split(':')[1].split(';')[0];
+        var ia = new Uint8Array(byteString.length);
+        for (var i = 0; i < byteString.length; i++) {
+            ia[i] = byteString.charCodeAt(i);
+        }
+        return new Blob([ia], {type:mimeString});
+    }
+
+    //验证canvas画布是否为空函数
+    function isCanvasBlank(base64img) {
+        var canvas= $('canvas')[0];
+        $('body').append($('<canvas id="blank"></canvas>'));
+        var blank = $('#blank')[0];
+        blank.width = canvas.width;
+        blank.height = canvas.height;
+        if(base64img == blank.toDataURL()){
+            return true;
+        }else{
+            $('#blank').remove();
+            return false;
+        }
+    }
+
+	//表单非空验证
+    function checkEmpty(base64img) {
+        if(isCanvasBlank(base64img)){
+            return true;
+        }else{
+            return false;
+        }
+    }
+</script>
+</html>
